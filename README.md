@@ -19,12 +19,15 @@ A simple network monitoring tool with a web dashboard, authentication, and relay
    ```bash
    pip3 install -r requirements.txt
    ```
+   > **Note for Windows users:**  
+   > You will see an error installing `RPi.GPIO`. This is expected—GPIO features are only available on Raspberry Pi.  
+   > The app will run normally, but relay control will be disabled.
 
 3. **Run the app**  
    ```bash
    python3 app.py
    ```
-   The dashboard will be available at `http://raspberrypi.local:5000` or your Pi's IP.
+   The dashboard will be available at `http://localhost:5000` (on your computer) or `http://raspberrypi.local:5000` (on your Pi).
 
 4. **Login**  
    Default user: `admin`  

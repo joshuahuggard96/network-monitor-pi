@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Settings</h1>
+    <a href="{{ url_for('dashboard') }}">Dashboard</a>
+    <form method="POST">
+        <label>Ping Interval (seconds): <input type="number" name="interval" value="{{ interval }}" min="5" required></label><br>
+        <label>Offline threshold (number of failed intervals before relay): <input type="number" name="threshold" value="{{ threshold }}" min="1" required></label><br>
+        <label>Relay GPIO Pin: <input type="number" value="{{ relay_pin }}" disabled></label><br>
+        <button type="submit">Update Settings</button>
+    </form>
+</body>
+</html>

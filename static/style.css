@@ -1,0 +1,29 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f7f7f7;
+    margin: 0;
+    padding: 20px;
+}
+h1, h2 {
+    color: #333;
+}
+table {
+    border-collapse: collapse;
+    background: #fff;
+    width: 100%;
+    margin-bottom: 20px;
+}
+th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+}
+.login-container {
+    max-width: 400px;
+    margin: 80px auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 6px;
+    box-shadow: 0 0 8px #ccc;
+}
+.flashes { color: red; }

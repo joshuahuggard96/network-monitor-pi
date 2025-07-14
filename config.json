@@ -1,0 +1,16 @@
+{
+  "devices": [
+    {
+      "ip": "8.8.8.8",
+      "name": "Google DNS",
+      "relay": false,
+      "offline_count": 0
+    }
+  ],
+  "interval": 30,
+  "relay_pin": 17,
+  "offline_threshold": 3,
+  "users": {
+    "admin": "admin"
+  }
+}

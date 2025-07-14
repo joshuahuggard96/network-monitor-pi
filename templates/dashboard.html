@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Monitor Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Network Monitor Dashboard</h1>
+    <a href="{{ url_for('logout') }}">Logout</a> | 
+    <a href="{{ url_for('settings') }}">Settings</a>
+    <table>
+        <tr>
+            <th>Name</th><th>IP</th><th>Status</th><th>Last Ping</th><th>Response (ms)</th><th>Relay</th><th>Actions</th>
+        </tr>
+        {% for d in devices %}
+        <tr>
+            <td>{{ d.name }}</td>
+            <td>{{ d.ip }}</td>
+            {% set s = status[d.ip] %}
+            <td style="color: '{{ 'green' if s.online else 'red' }}';">{{ 'Online' if s.online else 'Offline' }}</td>
+            <td>{{ s.last_ping }}</td>
+            <td>{{ s.response if s.response else 'N/A' }}</td>
+            <td>{{ 'Yes' if d.relay else 'No' }}</td>
+            <td>
+                <a href="{{ url_for('remove_device', ip=d.ip) }}">Remove</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h3>Add Device</h3>
+    <form method="POST" action="{{ url_for('update_devices') }}">
+        <label>Name: <input type="text" name="name" required></label>
+        <label>IP: <input type="text" name="ip" required></label>
+        <label>Relay: <input type="checkbox" name="relay"></label>
+        <button type="submit">Add</button>
+    </form>
+</body>
+</html>

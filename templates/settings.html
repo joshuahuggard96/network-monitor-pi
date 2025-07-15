@@ -13,5 +13,11 @@
         <label>Relay GPIO Pin: <input type="number" value="{{ relay_pin }}" disabled></label><br>
         <button type="submit">Update Settings</button>
     </form>
+
+    <h2>Change Admin Password</h2>
+    <form method="POST" action="{{ url_for('settings') }}">
+        <label>New Password: <input type="password" name="new_password" required></label><br>
+        <button type="submit" name="change_password" value="1">Change Password</button>
+    </form>
 </body>
 </html>

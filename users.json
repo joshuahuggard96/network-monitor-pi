@@ -1,0 +1,8 @@
+{
+  "interval": 30,
+  "relay_pin": 17,
+  "offline_threshold": 3,
+  "users": {
+    "admin": "pbkdf2:sha256:1000000$3jFzeSHGdgDPf7vm$76cfaccfc7a431022efc9773c3ec8d141c1d5416151caa9ad9bc69d7e8382a31"
+  }
+}

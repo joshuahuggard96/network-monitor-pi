@@ -17,7 +17,15 @@
             <td>{{ d.name }}</td>
             <td>{{ d.ip }}</td>
             {% set s = status[d.ip] %}
-            <td style="color: '{{ 'green' if s.online else 'red' }}';">{{ 'Online' if s.online else 'Offline' }}</td>
+            <td>
+                {% if s.online is not none %}
+                    <span style="color: {{ 'green' if s.online else 'red' }}; font-weight: bold;">
+                        {{ 'Pass' if s.online else 'Failed' }}
+                    </span>
+                {% else %}
+                    <span style="color: gray;">Unknown</span>
+                {% endif %}
+            </td>
             <td>{{ s.last_ping }}</td>
             <td>{{ s.response if s.response else 'N/A' }}</td>
             <td>{{ 'Yes' if d.relay else 'No' }}</td>

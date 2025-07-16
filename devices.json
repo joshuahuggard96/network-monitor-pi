@@ -10,5 +10,11 @@
     "name": "Gateway",
     "relay": false,
     "offline_count": 0
+  },
+  {
+    "ip": "192.168.0.251",
+    "name": "Josh's Iphone",
+    "relay": true,
+    "offline_count": 0
   }
 ]

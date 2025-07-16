@@ -49,6 +49,7 @@ def save_devices(devs):
 config = load_users()
 devices = load_devices()
 devices_status = {d["ip"]: {"online": None, "last_ping": None, "response": None, "offline_count": 0} for d in devices}
+status_lock = threading.Lock()
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -71,6 +72,7 @@ def relay_off(pin):
     GPIO.output(pin, GPIO.LOW)
 
 def setup_gpio(pin):
+    GPIO.setwarnings(False)  # Suppress GPIO warnings
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(pin, GPIO.OUT)
     relay_off(pin)
@@ -78,26 +80,45 @@ def setup_gpio(pin):
 def monitor_devices():
     setup_gpio(config["relay_pin"])
     while True:
-        devices = load_devices()
-        for device in devices:
+        # Reload config and devices from files
+        current_config = load_users()
+        current_devices = load_devices()
+        
+        with status_lock:
+            # Ensure all devices have entries in devices_status
+            for device in current_devices:
+                ip = device["ip"]
+                if ip not in devices_status:
+                    devices_status[ip] = {"online": None, "last_ping": None, "response": None, "offline_count": 0}
+            
+            # Remove devices that no longer exist
+            existing_ips = {d["ip"] for d in current_devices}
+            for ip in list(devices_status.keys()):
+                if ip not in existing_ips:
+                    del devices_status[ip]
+        
+        for device in current_devices:
             ip = device["ip"]
             online, response = ping(ip)
-            status = devices_status.setdefault(ip, {"online": None, "last_ping": None, "response": None, "offline_count": 0})
-            status["online"] = online
-            status["last_ping"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            status["response"] = response
-            if not online:
-                status["offline_count"] += 1
-            else:
-                status["offline_count"] = 0
-
-            # Relay logic
-            if device.get("relay", False):
-                if status["offline_count"] >= config["offline_threshold"]:
-                    relay_on(config["relay_pin"])
+            
+            with status_lock:
+                status = devices_status[ip]
+                status["online"] = online
+                status["last_ping"] = time.strftime("%Y-%m-%d %H:%M:%S")
+                status["response"] = response
+                if not online:
+                    status["offline_count"] += 1
                 else:
-                    relay_off(config["relay_pin"])
-        time.sleep(config["interval"])
+                    status["offline_count"] = 0
+
+                # Relay logic
+                if device.get("relay", False):
+                    if status["offline_count"] >= current_config["offline_threshold"]:
+                        relay_on(current_config["relay_pin"])
+                    else:
+                        relay_off(current_config["relay_pin"])
+        
+        time.sleep(current_config["interval"])
 
 @app.route("/", methods=["GET", "POST"])
 def login():
@@ -130,7 +151,17 @@ def login_required(f):
 @login_required
 def dashboard():
     devices = load_devices()
-    return render_template("dashboard.html", devices=devices, status=devices_status, interval=config["interval"], threshold=config["offline_threshold"])
+    with status_lock:
+        status_copy = devices_status.copy()
+    return render_template("dashboard.html", devices=devices, status=status_copy, interval=config["interval"], threshold=config["offline_threshold"])
+
+@app.route("/api/status")
+@login_required
+def api_status():
+    devices = load_devices()
+    with status_lock:
+        status_copy = devices_status.copy()
+    return {"devices": devices, "status": status_copy, "interval": config["interval"], "threshold": config["offline_threshold"]}
 
 @app.route("/settings", methods=["GET", "POST"])
 @login_required
@@ -165,16 +196,43 @@ def update_devices():
     if ip and name:
         devices = load_devices()
         devices.append({"ip": ip, "name": name, "relay": relay, "offline_count": 0})
-        devices_status[ip] = {"online": None, "last_ping": None, "response": None, "offline_count": 0}
+        with status_lock:
+            devices_status[ip] = {"online": None, "last_ping": None, "response": None, "offline_count": 0}
         save_devices(devices)
     return redirect(url_for("dashboard"))
+
+@app.route("/devices/edit/<ip>", methods=["GET", "POST"])
+@login_required
+def edit_device(ip):
+    devices = load_devices()
+    device = next((d for d in devices if d["ip"] == ip), None)
+    if not device:
+        flash("Device not found.")
+        return redirect(url_for("dashboard"))
+    
+    if request.method == "POST":
+        # Update device parameters
+        new_name = request.form.get("name", "").strip()
+        if not new_name:
+            flash("Device name cannot be empty.")
+            return render_template("edit_device.html", device=device)
+        
+        device["name"] = new_name
+        device["relay"] = bool(request.form.get("relay"))
+        save_devices(devices)
+        flash(f"Device '{device['name']}' updated successfully.")
+        return redirect(url_for("dashboard"))
+    
+    # For GET request, render edit form
+    return render_template("edit_device.html", device=device)
 
 @app.route("/devices/remove/<ip>")
 @login_required
 def remove_device(ip):
     devices = load_devices()
     devices = [d for d in devices if d["ip"] != ip]
-    devices_status.pop(ip, None)
+    with status_lock:
+        devices_status.pop(ip, None)
     save_devices(devices)
     return redirect(url_for("dashboard"))
 

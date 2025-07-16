@@ -8,6 +8,17 @@
     <h1>Network Monitor Dashboard</h1>
     <a href="{{ url_for('logout') }}">Logout</a> | 
     <a href="{{ url_for('settings') }}">Settings</a>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
     <table>
         <tr>
             <th>Name</th><th>IP</th><th>Status</th><th>Last Ping</th><th>Response (ms)</th><th>Relay</th><th>Actions</th>
@@ -30,6 +41,7 @@
             <td>{{ s.response if s.response else 'N/A' }}</td>
             <td>{{ 'Yes' if d.relay else 'No' }}</td>
             <td>
+                <a href="{{ url_for('edit_device', ip=d.ip) }}">Edit</a> | 
                 <a href="{{ url_for('remove_device', ip=d.ip) }}">Remove</a>
             </td>
         </tr>
@@ -42,5 +54,50 @@
         <label>Relay: <input type="checkbox" name="relay"></label>
         <button type="submit">Add</button>
     </form>
+    
+    <p><small>Auto-refresh every {{ interval }} seconds | Offline threshold: {{ threshold }} pings</small></p>
+    
+    <script>
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const table = document.querySelector('table');
+                    const rows = table.querySelectorAll('tr');
+                    
+                    // Skip header row (index 0)
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i];
+                        const cells = row.querySelectorAll('td');
+                        const ip = cells[1].textContent.trim();
+                        const status = data.status[ip];
+                        
+                        if (status) {
+                            // Update status cell
+                            if (status.online !== null) {
+                                cells[2].innerHTML = `<span style="color: ${status.online ? 'green' : 'red'}; font-weight: bold;">${status.online ? 'Pass' : 'Failed'}</span>`;
+                            } else {
+                                cells[2].innerHTML = '<span style="color: gray;">Unknown</span>';
+                            }
+                            
+                            // Update last ping cell
+                            cells[3].textContent = status.last_ping || 'N/A';
+                            
+                            // Update response time cell
+                            cells[4].textContent = status.response || 'N/A';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching status:', error);
+                });
+        }
+        
+        // Update status immediately when page loads
+        updateStatus();
+        
+        // Set up auto-refresh
+        setInterval(updateStatus, {{ interval * 1000 }});
+    </script>
 </body>
 </html>

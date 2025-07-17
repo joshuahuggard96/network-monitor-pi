@@ -1,23 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Settings</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Network Monitor</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <h1>Settings</h1>
-    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-    <form method="POST">
-        <label>Ping Interval (seconds): <input type="number" name="interval" value="{{ interval }}" min="5" required></label><br>
-        <label>Offline threshold (number of failed intervals before relay): <input type="number" name="threshold" value="{{ threshold }}" min="1" required></label><br>
-        <label>Relay GPIO Pin: <input type="number" value="{{ relay_pin }}" disabled></label><br>
-        <button type="submit">Update Settings</button>
-    </form>
+    <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h1>Settings</h1>
+        <nav>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> | 
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </nav>
+    </header>
+    
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for message in messages %}
+                    <div class="flash-message">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+    
+    <section id="general-settings">
+        <h2>General Settings</h2>
+        <form method="POST">
+            <div style="margin-bottom: 15px;">
+                <label for="interval">Ping Interval (seconds):</label>
+                <input type="number" id="interval" name="interval" value="{{ interval }}" min="5" max="3600" required>
+                <small>How often to ping devices (5-3600 seconds)</small>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="threshold">Offline Threshold:</label>
+                <input type="number" id="threshold" name="threshold" value="{{ threshold }}" min="1" max="100" required>
+                <small>Number of failed pings before considering device offline</small>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label for="relay_pin">Relay GPIO Pin:</label>
+                <input type="number" id="relay_pin" value="{{ relay_pin }}" disabled style="background-color: #f0f0f0;">
+                <small>GPIO pin for relay control (read-only, change in config.json)</small>
+            </div>
+            <button type="submit">Update Settings</button>
+        </form>
+    </section>
 
-    <h2>Change Admin Password</h2>
-    <form method="POST" action="{{ url_for('settings') }}">
-        <label>New Password: <input type="password" name="new_password" required></label><br>
-        <button type="submit" name="change_password" value="1">Change Password</button>
-    </form>
+    <section id="password-settings">
+        <h2>Security Settings</h2>
+        <form method="POST" action="{{ url_for('settings') }}">
+            <div style="margin-bottom: 15px;">
+                <label for="new_password">New Admin Password:</label>
+                <input type="password" id="new_password" name="new_password" minlength="4" required>
+                <small>Minimum 4 characters</small>
+            </div>
+            <button type="submit" name="change_password" value="1">Change Password</button>
+        </form>
+    </section>
 </body>
 </html>

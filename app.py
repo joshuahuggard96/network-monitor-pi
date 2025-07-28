@@ -1,5 +1,5 @@
 import socket
-
+import subprocess
 
 print(r"""
     
@@ -37,7 +37,7 @@ while not logged_in:
     print("Login successful")
     logged_in = True
   else:
-    print("Authentication failed. Please try again.")
+    print("Authentication failed. Please try again. ❌")
 
 hostname = socket.gethostname()
 ip_address = socket.gethostbyname(hostname)
@@ -46,3 +46,27 @@ ip_address = socket.gethostbyname(hostname)
 print("\nSystem Information:")
 print(f"Hostname: {hostname}")
 print(f"IP Address: {ip_address}")
+
+## Function to ping an IP address note: -n is used for Windows, use -c for Linux/Mac
+def Ping_IP(IPaddress):
+    try:
+        output = subprocess.check_output(["ping", "-n", "2", IPaddress])
+        print(f"{output.decode()}\nPing successful: ✅")
+    except subprocess.CalledProcessError:
+        print("Ping failed.❌")
+
+while True:
+    print("\nMenu:")
+    print("1. Ping an IP address")
+    print("2. Exit")
+    
+    choice = input("Enter your choice: ")
+    
+    if choice == "1":
+        ip_to_ping = input("Enter the IP address to ping: ")
+        Ping_IP(ip_to_ping)
+    elif choice == "2":
+        print("Exiting the Admin Panel. Goodbye! 👋")
+        break
+    else:
+        print("Invalid choice. Please try again. ❌")

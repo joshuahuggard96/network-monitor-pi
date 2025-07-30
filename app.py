@@ -7,7 +7,7 @@ admin_password = "admin"
 logged_in = False
 hostname = socket.gethostname()
 ip_address = socket.gethostbyname(hostname)
-ip_address_list = []
+ip_address_list = [ip_address, "192.168.0.2","192.168.0.1"]
 
 
 ## Function to authenticate user
@@ -16,13 +16,42 @@ def authenticate(username, password):
         return True
     return False
 
-## Function to ping an IP address note: -n is used for Windows, use -c for Linux/Mac
+## Function to ping an IP address note: 
 def Ping_IP(IPaddress):
     try:
-        output = subprocess.check_output(["ping", "-n", "2", IPaddress])
-        print(f"{output.decode()}\nPing successful: ✅")
-    except subprocess.CalledProcessError:
-        print("Ping failed: ❌")
+        output = subprocess.check_output(["ping", "-c", "1", IPaddress], stderr=subprocess.STDOUT, universal_newlines=True)
+        if "1 received" in output:
+            print(f"Ping to {IPaddress} successful. ✅")
+            return True
+        else:
+            print(f"Ping to {IPaddress} failed. ❌")
+            return False
+    except subprocess.CalledProcessError as e:
+        # This catches when ping command fails (unreachable hosts, timeouts, etc.)
+        output = e.output if e.output else ""
+        if "unreachable" in output.lower():
+            print(f"Ping to {IPaddress} - Host unreachable. ❌")
+        elif "100% packet loss" in output or "0 received" in output:
+            print(f"Ping to {IPaddress} - Request timed out. ❌")
+        elif "name or service not known" in output.lower():
+            print(f"Ping to {IPaddress} - Unknown host. ❌")
+        else:
+            print(f"Ping to {IPaddress} failed. ❌")
+        return False
+    except Exception as e:
+        print(f"Ping to {IPaddress} - Error: {e}")
+        return False
+
+def Ping_IP_List(ip_list):
+    list_result = True
+    for ip in ip_list:
+        if not Ping_IP(ip):
+            list_result = False
+    if not list_result:
+        print(f"Ping List Failed. ❌")
+    else:
+        print(f"Ping List Success. ✅")
+    return list_result
 
 
 ## Print the welcome message
@@ -47,10 +76,10 @@ print("Welcome to the Admin Panel")
 ## Prompt for authentication
 while not logged_in:
   if authenticate(input("Enter username: "), input("Enter password: ")):
-    print("Login successful ✅")
+    print("Login successful.")
     logged_in = True
   else:
-    print("Authentication failed. Please try again. ❌")
+    print("Authentication failed. Please try again.")
 
 
 
@@ -75,21 +104,24 @@ while True:
         else:
             for ip in ip_address_list:
                 print(f"IP Address: {ip}")
+
     elif choice == "2":
         ip_to_ping = input("Enter the IP address to ping: ")
         Ping_IP(ip_to_ping)
+
     elif choice == "3":
-        print("Pinging IP address list...")
+        print("Pinging IP address list: ")
         if not ip_address_list:
             print("No IP addresses to ping. ❌")
         else:
-          for ip in ip_address_list:
-            Ping_IP(ip)
+            Ping_IP_List(ip_address_list)
+
     elif choice == "4":
         new_ip = input("Enter the IP address to add: ")
         ip_address_list.append(new_ip)
         print(f"IP Address {new_ip} added to the list. ✅")
-    elif choice == "5":
+
+    elif choice == "5" or choice.lower() == "exit":
         print("Exiting the Admin Panel. Goodbye! 👋")
         break
     else:

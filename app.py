@@ -1,5 +1,6 @@
 import socket
 import subprocess
+import time
 
 ## Variables
 admin_user = "admin"
@@ -8,6 +9,8 @@ logged_in = False
 hostname = socket.gethostname()
 ip_address = socket.gethostbyname(hostname)
 ip_address_list = [ip_address, "192.168.0.2","192.168.0.1"]
+ping_interval = 10  # seconds
+automate_ping_list = True  # Set to True to enable automated pinging
 
 
 ## Function to authenticate user
@@ -16,10 +19,11 @@ def authenticate(username, password):
         return True
     return False
 
+
 ## Function to ping an IP address note: 
 def Ping_IP(IPaddress):
     try:
-        output = subprocess.check_output(["ping", "-c", "1", IPaddress], stderr=subprocess.STDOUT, universal_newlines=True)
+        output = subprocess.check_output(["ping", "-c", "1", IPaddress], stderr=subprocess.STDOUT, text=True)
         if "1 received" in output:
             print(f"Ping to {IPaddress} successful. ✅")
             return True
@@ -41,7 +45,8 @@ def Ping_IP(IPaddress):
     except Exception as e:
         print(f"Ping to {IPaddress} - Error: {e}")
         return False
-
+    
+## Function to ping a list of IP addresses
 def Ping_IP_List(ip_list):
     list_result = True
     for ip in ip_list:
@@ -52,6 +57,14 @@ def Ping_IP_List(ip_list):
     else:
         print(f"Ping List Success. ✅")
     return list_result
+
+## Function to automate pinging the list of IP addresses DOESNT WORK YET
+def automate_ping_list(ip_list):
+    wait_time = ping_interval
+    Ping_IP_List(ip_list)
+    if logged_in:
+        print(f"Waiting for {wait_time} seconds before the next ping...")
+        time.sleep(wait_time)
 
 
 ## Print the welcome message
@@ -93,8 +106,9 @@ while True:
     print("2. Ping an IP address")
     print("3. Ping IP address List")
     print("4. add IP address to list")
-    print("5. Exit")
-    
+    print("5. enable/disable automated pinging")
+    print("6. Exit")
+
     choice = input("Enter your choice: ")
     
     if choice == "1":
@@ -121,7 +135,14 @@ while True:
         ip_address_list.append(new_ip)
         print(f"IP Address {new_ip} added to the list. ✅")
 
-    elif choice == "5" or choice.lower() == "exit":
+    elif choice == "5":
+        automate_ping_list = not automate_ping_list
+        if automate_ping_list:
+            print("Automated pinging enabled. ✅")
+        else:
+            print("Automated pinging disabled. ❌")
+            
+    elif choice == "6" or choice.lower() == "exit":
         print("Exiting the Admin Panel. Goodbye! 👋")
         break
     else:

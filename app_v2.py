@@ -1,4 +1,5 @@
 import threading
+import logging
 import time
 import socket
 import subprocess
@@ -6,23 +7,25 @@ from ping3 import ping ,verbose_ping
 
 ## Variables
 ping_interval = 1  # seconds
-times_to_check = 2
+times_to_check = 2 # number of times to check before confirming the IPs are reachable
 automate_ping_list = True  # Set to True to enable automated pinging
-ip_address_list = ["192.168.0.1", "192.168.0.1", "192.168.0.1"]
+ip_address_list = ["192.168.0.1", "192.168.0.2", "192.168.0.3"]
 toggle_ping_list = True  # Set to True to enable automated pinging
 result = False
-debug = True
+debug = False  # Set to True to enable debug mode
+
+logging.basicConfig(filename='monitor.log', level=logging.INFO, format='%(asctime)s - %(message)s')
 
 ## Function to ping an IP address
 def ping_ip(ipaddress):
   response = ping(ipaddress)
   if response is not None and response is not False:
       if debug: 
-          print(f"Ping to {ipaddress} successful. ✅")
+          logging.info(f"Ping to {ipaddress} successful. ✅")
       return True
   else:
       if debug:
-          print(f"Ping to {ipaddress} failed. ❌")
+          logging.info(f"Ping to {ipaddress} failed. ❌")
       return False
 
 def ping_ip_list(ip_list):
@@ -37,14 +40,12 @@ def automate_ping_list(ip_list):
     time.sleep(ping_interval)
     return list_result
 
-
-
 def ping_list_check(ip_list):
+    global result, times_passed
     times_passed = 0
-    global result
     while toggle_ping_list:
         if debug:
-            print(f"times passed: {times_passed} and ping list out: {result}")
+            logging.info(f"times passed: {times_passed} and ping list out: {result}")
         ping_list_passed = automate_ping_list(ip_list)
         if ping_list_passed and times_passed < times_to_check:
             times_passed += 1
@@ -57,7 +58,6 @@ def ping_list_check(ip_list):
             result = False
     return result
 
-
 ping_thread = threading.Thread(target=ping_list_check, args=(ip_address_list,), daemon=True)
 ping_thread.start()
 
@@ -68,7 +68,8 @@ while True:
         toggle_ping_list = False
         break
     elif user_input.lower() == "debug":
-        debug = True
+        debug = not debug  # This toggles True/False properly
+        print(f"Debug mode: {'ON' if debug else 'OFF'}")
     else:
-        print(result)
-    
+        print(f"Current result: {result}")
+

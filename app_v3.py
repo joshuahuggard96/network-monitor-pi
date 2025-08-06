@@ -1,16 +1,15 @@
 import threading
 import time
-import socket
-import subprocess
-from ping3 import ping ,verbose_ping
+import json
+from ping3 import ping
+
 
 ## Variables
 ping_interval = 1  # seconds
 times_to_check = 2
 automate_ping_list = True  # Set to True to enable automated pinging
-ip_address_list = ["192.168.0.1", "192.168.0.1", "192.168.0.1"]
+ip_address_list = ["192.168.0.1", "8.8.8.8", "1.1.1.1"]
 toggle_ping_list = True  # Set to True to enable automated pinging
-result = False
 debug = False
 
 ## Function to ping an IP address
@@ -36,8 +35,6 @@ def automate_ping_list(ip_list):
     list_result = ping_ip_list(ip_list)
     time.sleep(ping_interval)
     return list_result
-
-
 
 def ping_list_check(ip_list):
     times_passed = 0

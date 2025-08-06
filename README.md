@@ -1,57 +1,172 @@
-# Raspberry Pi Network Monitor
+# Network Monitor
 
-A simple network monitoring tool with a web dashboard, authentication, and relay control.
+A Python-based network monitoring tool that continuously pings IP addresses and provides real-time status updates. Features both command-line interface and background monitoring capabilities.
 
 ## Features
 
-- Periodically pings a configurable list of IPs/hosts
-- Web dashboard to view status, add/remove devices, change intervals
-- Login-protected access
-- Relay output (GPIO) triggered if a device goes offline for set intervals
-- Easy to use and run on Raspberry Pi
+- **Continuous Network Monitoring**: Background thread monitors network connectivity
+- **Multiple Ping Methods**: Support for both `pythonping` library and system ping fallback
+- **Cross-Platform Support**: Works on Windows, Linux, and WSL
+- **Real-Time Status Updates**: Live monitoring with configurable intervals
+- **Flexible IP Management**: Easy addition/removal of IP addresses to monitor
+- **Debug Mode**: Detailed logging for troubleshooting
+- **Thread-Safe Operations**: Safe concurrent access to monitoring results
 
-## Setup
+## Project Structure
 
-1. **Clone the repo**  
-   `git clone https://github.com/joshuahuggard96/network-monitor-pi.git`
+```
+network-monitor-pi/
+├── app.py          # Original subprocess-based implementation
+├── app_v2.py       # Enhanced version with pythonping and threading
+├── README.md       # This file
+└── requirements.txt # Python dependencies
+```
 
-2. **Install dependencies**  
+## Requirements
+
+- Python 3.6+
+- ping3 or pythonping library
+- Network connectivity for testing
+
+## Installation
+
+1. **Clone the repository**
    ```bash
-   pip3 install -r requirements.txt
+   git clone https://github.com/joshuahuggard96/network-monitor-pi.git
+   cd network-monitor-pi
    ```
 
-3. **Run the app**  
+2. **Install Python dependencies**
    ```bash
-   python3 app.py
+   # For Windows
+   pip install ping3
+   pip install pythonping
+   
+   # For Linux/WSL
+   pip3 install ping3
+   pip3 install pythonping
    ```
-   The dashboard will be available at `http://raspberrypi.local:5000` or at your Pi's IP address.
 
-4. **Login**  
-   Default user: `admin`  
-   Default pass: `admin`  
-   (Change password in `config.json` or via the Settings tab for security!)
+3. **Linux/WSL Permission Setup** (if using pythonping)
+   ```bash
+   # Grant ping capabilities to Python
+   sudo setcap cap_net_raw+ep $(which python3)
+   
+   # Or run with sudo
+   sudo python3 app_v2.py
+   ```
 
-5. **Configure GPIO relay**  
-   - Connect your relay to the GPIO pin (default: 17).
-   - Change pin in `config.json` if needed.
+## Usage
 
-## Customization
+### Basic Version (app.py)
+```bash
+python3 app.py
+```
+- Simple subprocess-based ping implementation
+- Interactive menu for IP management
+- Manual ping operations
 
-- Add devices via dashboard or by editing `devices.json`
-- Change ping interval and offline threshold in dashboard or in `config.json`
-- Set relay for devices (checkbox)
-- Device list is stored in `devices.json`
-- All other settings and users are stored in `config.json`
+### Enhanced Version (app_v2.py)
+```bash
+python3 app_v2.py
+```
+- Background monitoring with threading
+- Real-time status updates
+- Configurable success thresholds
 
-## Notes
+### Interactive Commands
+- **Enter**: Check current monitoring status
+- **"stop"**: Stop monitoring and exit
+- **"debug"**: Enable debug mode for detailed output
 
-This project is designed to run only on Raspberry Pi OS with GPIO support.
+## Configuration
 
-## Security
+Edit the variables at the top of `app_v2.py`:
 
-Change the default password in `config.json` or via the Settings tab after first login.
-Use a strong password!
+```python
+ping_interval = 1           # Seconds between ping cycles
+times_to_check = 2         # Successful pings needed for "online" status
+ip_address_list = [        # IPs to monitor
+    "192.168.0.1",         # Router/Gateway
+    "8.8.8.8",             # Google DNS
+    "1.1.1.1"              # Cloudflare DNS
+]
+```
+
+## Platform-Specific Notes
+
+### Windows
+- Uses `-n` parameter for ping count
+- Works with Windows Command Prompt or PowerShell
+- No special permissions required for system ping
+
+### Linux/WSL
+- Uses `-c` parameter for ping count  
+- May require elevated permissions for ICMP packets
+- Fallback to system ping if library fails
+
+### Cross-Platform Compatibility
+The code automatically detects the operating system and uses appropriate ping parameters.
+
+## Features Comparison
+
+| Feature | app.py | app_v2.py |
+|---------|--------|-----------|
+| Basic ping functionality | ✅ | ✅ |
+| Background monitoring | ❌ | ✅ |
+| Threading support | ❌ | ✅ |
+| Real-time status | ❌ | ✅ |
+| Success threshold | ❌ | ✅ |
+| Interactive menu | ✅ | ❌ |
+| Debug mode | ❌ | ✅ |
+
+## Troubleshooting
+
+### Permission Errors
+```bash
+# Linux/WSL: Grant ping capabilities
+sudo setcap cap_net_raw+ep $(which python3)
+
+# Or run with elevated privileges
+sudo python3 app_v2.py
+```
+
+### Module Not Found
+```bash
+# Install missing dependencies
+pip3 install ping3 pythonping
+```
+
+### Network Issues
+- Verify IP addresses are reachable
+- Check firewall settings
+- Test with basic system ping first
+
+## Development
+
+### Adding New Features
+1. Fork the repository
+2. Create a feature branch
+3. Implement changes
+4. Test on multiple platforms
+5. Submit a pull request
+
+### Contributing
+- Follow Python PEP 8 style guidelines
+- Add comments for complex logic
+- Test on both Windows and Linux
+- Update documentation as needed
 
 ## License
 
-MIT
+MIT License - feel free to modify and distribute as needed.
+
+## Future Enhancements
+
+- [ ] Web dashboard interface
+- [ ] Email/SMS notifications
+- [ ] Raspberry Pi GPIO integration
+- [ ] Configuration file support
+- [ ] Logging to file
+- [ ] Network latency tracking
+- [ ] Multiple monitoring profiles

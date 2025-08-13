@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .status {
+            font-size: 24px;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .online {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .offline {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <h1>Network Monitor</h1>
+    <div id="status" class="status loading">Checking network status...</div>
+    <div id="timestamp"></div>
+    <div id="ip-list"></div>
+
+    <script>
+        function updateStatus() {
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusDiv = document.getElementById('status');
+                    const timestampDiv = document.getElementById('timestamp');
+                    const ipListDiv = document.getElementById('ip-list');
+                    
+                    if (data.network_status) {
+                        statusDiv.textContent = 'Network Online';
+                        statusDiv.className = 'status online';
+                    } else {
+                        statusDiv.textContent = 'Network Offline';
+                        statusDiv.className = 'status offline';
+                    }
+                    
+                    const date = new Date(data.timestamp * 1000);
+                    timestampDiv.textContent = `Last updated: ${date.toLocaleString()}`;
+                    
+                    ipListDiv.innerHTML = `<p>Monitoring IPs: ${data.ip_addresses.join(', ')}</p>`;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('status').textContent = 'Error checking status';
+                    document.getElementById('status').className = 'status offline';
+                });
+        }
+
+        // Update status every 2 seconds
+        updateStatus();
+        setInterval(updateStatus, 2000);
+    </script>
+</body>
+</html>

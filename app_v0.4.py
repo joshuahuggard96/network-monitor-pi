@@ -9,17 +9,21 @@ app = Flask(__name__)
 ## Variables
 ping_interval = 1  # seconds
 times_to_check = 2
-automate_ping_list = True  # Set to True to enable automated pinging
-ip_address_list = ["192.168.0.1", "8.8.8.8", "1.1.1.1"]
+ip_address_list = ["192.168.16.1", "8.8.8.8", "192.168.16.42","192.168.51.122"]
 toggle_ping_list = True  # Set to True to enable automated pinging
 result = False
+ip_status = {}
 
 ## Function to ping an IP address
 def ping_ip(ipaddress):
   response = ping(ipaddress)
   if response is not None and response is not False:
+      print(f"Ping to {ipaddress} successful. ✅")
+      ip_status[ipaddress] = True
       return True
   else:
+      print(f"Ping to {ipaddress} failed. ❌")
+      ip_status[ipaddress] = False
       return False
 
 def ping_ip_list(ip_list):
@@ -30,6 +34,7 @@ def ping_ip_list(ip_list):
     return list_result
 
 def automate_ping_list(ip_list):
+    print("pinging IP List:")
     list_result = ping_ip_list(ip_list)
     time.sleep(ping_interval)
     return list_result
@@ -58,7 +63,8 @@ def get_status():
     return jsonify({
         'network_status': result,
         'timestamp': time.time(),
-        'ip_addresses': ip_address_list
+        'ip_addresses': ip_address_list,
+        'ip_status': ip_status
     })
 
 

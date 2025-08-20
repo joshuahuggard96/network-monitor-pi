@@ -1,49 +1,49 @@
 import threading
 import time
-import json
 from ping3 import ping
 from flask import Flask, render_template, jsonify
+import socket 
+import logging
 
 app = Flask(__name__)
 
 ## Variables
 ping_interval = 1  # seconds
 times_to_check = 2
-ip_address_list = ["192.168.16.1", "8.8.8.8", "192.168.16.42","192.168.51.122"]
 toggle_ping_list = True  # Set to True to enable automated pinging
 result = False
 ip_status = {}
+
+ip_address_list = {
+    "Router": "10.220.14.1",
+    "Google DNS": "8.8.8.8", 
+    "Desktop PC": "10.220.14.28"
+}
+
 
 ## Function to ping an IP address
 def ping_ip(ipaddress):
   response = ping(ipaddress)
   if response is not None and response is not False:
-      print(f"Ping to {ipaddress} successful. ✅")
       ip_status[ipaddress] = True
       return True
   else:
-      print(f"Ping to {ipaddress} failed. ❌")
       ip_status[ipaddress] = False
       return False
 
 def ping_ip_list(ip_list):
     list_result = True
-    for ip in ip_list:
+    for name, ip in ip_list.items():
         if ping_ip(ip) == False:
             list_result = False
-    return list_result
-
-def automate_ping_list(ip_list):
-    print("pinging IP List:")
-    list_result = ping_ip_list(ip_list)
-    time.sleep(ping_interval)
     return list_result
 
 def ping_list_check(ip_list):
     times_passed = 0
     global result
     while toggle_ping_list:
-        ping_list_passed = automate_ping_list(ip_list)
+        ping_list_passed = ping_ip_list(ip_list)
+        time.sleep(ping_interval)
         if ping_list_passed:
             times_passed += 1
             if times_passed >= times_to_check:
@@ -52,6 +52,7 @@ def ping_list_check(ip_list):
             times_passed = 0
             result = False
     return result
+
 
 
 @app.route('/')
@@ -69,6 +70,10 @@ def get_status():
 
 
 if __name__ == '__main__':
+
+    log = logging.getLogger("werkzeug")
+    log.setLevel(logging.ERROR)
+
     ping_thread = threading.Thread(target=ping_list_check, args=(ip_address_list,), daemon=True)
     ping_thread.start()
     

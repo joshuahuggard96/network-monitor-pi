@@ -3,30 +3,12 @@ import time
 from ping3 import ping
 from flask import Flask, render_template, jsonify
 import logging
+from devices import device_list
 
 app = Flask(__name__)
 
 ## Variables
 ping_interval = 0.5  # seconds
-
-
-device_list = {
-    "Router": {
-        "ip": "192.168.15.1",
-        "status": None, 
-        "last_online": None
-    },
-    "google dns": {
-        "ip": "8.8.8.8",
-        "status": None, 
-        "last_online": None
-    },
-    "Iphone": {
-        "ip": "192.168.15.64",
-        "status": None, 
-        "last_online": None
-    }
-}         
 
 
 ## Function to ping an IP address

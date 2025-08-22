@@ -4,7 +4,7 @@ device_list = {
         "status": None, 
         "last_online": None
     },
-    "google dns": {
+    "Google DNS": {
         "ip": "8.8.8.8",
         "status": None, 
         "last_online": None

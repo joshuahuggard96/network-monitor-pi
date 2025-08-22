@@ -42,7 +42,6 @@ h1 {
     padding: 15px 20px;
     margin: 8px 0;
     border-radius: 8px;
-    transition: all 0.3s ease;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -62,27 +61,19 @@ h1 {
     background-color: rgba(255, 255, 255, 0.8);
 }
 
-.ip-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
 .ip-online {
     background-color: #d4edda;
     color: #155724;
-    border-left: 4px solid #28a745;
 }
 
 .ip-offline {
     background-color: #f8d7da;
     color: #721c24;
-    border-left: 4px solid #dc3545;
 }
 
 .ip-checking {
     background-color: #fff3cd;
     color: #856404;
-    border-left: 4px solid #ffc107;
 }
 
 #timestamp {

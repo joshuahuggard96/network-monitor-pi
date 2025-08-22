@@ -4,14 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Network Monitor</title>
+    <script src="{{ url_for('static', filename='/htmx/htmx-1.9.12.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <h1>Network Monitor</h1>
-    <div id="status" class="status loading">Checking network status...</div>
-    <div id="timestamp"></div>
-    <div id="ip-list"></div>
-
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <div class="container">
+        <h1>Network Monitor Dashboard</h1>
+        
+        <!-- This div will auto-update every 500ms -->
+        <div hx-get="/api/status-html" 
+             hx-trigger="load, every 500ms"
+             hx-target="this"
+             hx-swap="innerHTML">
+            <!-- Initial content while loading -->
+            <div class="status offline">Loading</div>
+            <div id="ip-list"><h3>Device Status:</h3></div>
+        </div>
+    </div>
 </body>
 </html>

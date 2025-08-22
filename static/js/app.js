@@ -17,7 +17,7 @@ function updateStatus() {
             const ipListDiv = document.getElementById('ip-list');
             ipListDiv.innerHTML = '<h3>Device Status:</h3>';
             
-            // Handle device_list format with remove buttons
+            // Handle device_list format
             for (const [deviceName, deviceInfo] of Object.entries(data.device_list)) {
                 const deviceDiv = document.createElement('div');
                 deviceDiv.className = 'ip-item';
@@ -25,29 +25,20 @@ function updateStatus() {
                 if (deviceInfo.status === true) {
                     deviceDiv.classList.add('ip-online');
                     deviceDiv.innerHTML = `
-                        <div>
-                            <strong>${deviceName}</strong> 
-                            <span class="status-indicator">Online</span>
-                        </div>
-                        <button onclick="removeDevice('${deviceName}')" class="btn-danger">Remove</button>
+                        <strong>${deviceName}</strong> 
+                        <span class="status-indicator">Online</span>
                     `;
                 } else if (deviceInfo.status === false) {
                     deviceDiv.classList.add('ip-offline');
                     deviceDiv.innerHTML = `
-                        <div>
-                            <strong>${deviceName}</strong> 
-                            <span class="status-indicator">Offline</span>
-                        </div>
-                        <button onclick="removeDevice('${deviceName}')" class="btn-danger">Remove</button>
+                        <strong>${deviceName}</strong> 
+                        <span class="status-indicator">Offline</span>
                     `;
                 } else {
                     deviceDiv.classList.add('ip-checking');
                     deviceDiv.innerHTML = `
-                        <div>
-                            <strong>${deviceName}</strong> 
-                            <span class="status-indicator">Checking</span>
-                        </div>
-                        <button onclick="removeDevice('${deviceName}')" class="btn-danger">Remove</button>
+                        <strong>${deviceName}</strong> 
+                        <span class="status-indicator">Checking</span>
                     `;
                 }
                 
@@ -61,86 +52,10 @@ function updateStatus() {
         });
 }
 
-// Add device form handler
-function setupAddDeviceForm() {
-    const form = document.getElementById('add-device-form');
-    const messageDiv = document.getElementById('message');
-    
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(form);
-            const deviceData = {
-                name: formData.get('name'),
-                ip: formData.get('ip')
-            };
-            
-            fetch('/api/add-device', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(deviceData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    messageDiv.innerHTML = `<div class="success">${data.message}</div>`;
-                    form.reset();
-                    updateStatus(); // Refresh the device list
-                } else {
-                    messageDiv.innerHTML = `<div class="error">Error: ${data.error}</div>`;
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                messageDiv.innerHTML = `<div class="error">Error adding device</div>`;
-            });
-        });
-    }
-}
-
-// Remove device function
-function removeDevice(deviceName) {
-    if (confirm(`Are you sure you want to remove "${deviceName}"?`)) {
-        fetch('/api/remove-device', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({name: deviceName})
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                updateStatus(); // Refresh the device list
-                showMessage(`Device "${deviceName}" removed successfully`, 'success');
-            } else {
-                showMessage(`Error: ${data.error}`, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showMessage('Error removing device', 'error');
-        });
-    }
-}
-
-// Helper function to show messages
-function showMessage(text, type) {
-    const messageDiv = document.getElementById('message');
-    messageDiv.innerHTML = `<div class="${type}">${text}</div>`;
-    setTimeout(() => {
-        messageDiv.innerHTML = '';
-    }, 3000);
-}
-
 // Initialize the application
 function initApp() {
     console.log('Network Monitor Dashboard loaded');
     updateStatus();
-    setupAddDeviceForm(); // Setup form handlers
     setInterval(updateStatus, 500);
 }
 

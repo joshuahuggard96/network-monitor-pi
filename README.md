@@ -1,392 +1,271 @@
-# Network Monitor Pi
+# Network Monitor
 
-A professional Python-based network monitoring application that continuously pings network devices and provides real-time status updates through a modern web interface. Built with Flask and designed for reliability and ease of use.
+A Python-based network monitoring tool that continuously pings IP addresses and provides real-time status updates. Features both command-line interface, background monitoring, and a web dashboard for visual monitoring.
 
-## 🚀 Features
+## Features
 
-- **Real-Time Web Dashboard**: Modern responsive web interface with live status updates
-- **Device Management**: Add/remove devices dynamically through the web interface
-- **Individual Device Monitoring**: Track each device separately with online/offline/checking status
-- **Persistent Configuration**: Device list automatically saved to file
-- **Thread-Safe Operations**: Safe concurrent monitoring and web requests
-- **Professional API**: RESTful endpoints for integration with other systems
-- **Cross-Platform Support**: Works on Windows, Linux, macOS, and Raspberry Pi
-- **Input Validation**: IP address format validation and duplicate prevention
-- **Comprehensive Logging**: Professional logging with configurable levels
-- **Auto-Refresh**: Dashboard updates every 500ms for real-time monitoring
+- **Web Dashboard**: Real-time HTML interface showing network status
+- **Individual IP Monitoring**: Track each IP address separately with online/offline status
+- **Continuous Background Monitoring**: Threaded monitoring without blocking main application
+- **Multiple Ping Methods**: Support for both `ping3` library and system ping fallback
+- **Cross-Platform Support**: Works on Windows, Linux, and WSL
+- **Real-Time Updates**: Live monitoring with configurable intervals
+- **Flexible IP Management**: Easy addition/removal of IP addresses to monitor
+- **Clean Logging**: Optional request log suppression for cleaner console output
+- **Thread-Safe Operations**: Safe concurrent access to monitoring results
 
-## 🏗️ Project Structure
+## Project Structure
 
 ```
 network-monitor-pi/
-├── app.py                 # Main application (current version)
-├── devices.py            # Device configuration file (auto-generated)
+├── app.py              # Original subprocess-based implementation
+├── app_v2.py           # Enhanced version with threading support
+├── app_v0.3.py         # Latest version with Flask web interface
+├── app_v0.4.py         # Current main application
 ├── templates/
-│   └── index.html        # Web dashboard template
-├── static/
-│   ├── css/
-│   │   └── style.css     # Dashboard styling
-│   └── js/
-│       └── app.js        # Frontend JavaScript
-├── legacy/               # Previous versions
-├── .gitignore           # Git ignore rules
-├── README.md            # This documentation
-└── requirements.txt     # Python dependencies
+│   └── index.html      # Web dashboard interface
+├── legacy/             # Previous versions
+├── README.md           # This file
+└── requirements.txt    # Python dependencies
 ```
 
-## 📋 Requirements
+## Requirements
 
-- Python 3.7+
+- Python 3.6+
 - ping3 library for ICMP ping functionality
-- Flask for web framework
-- Network connectivity for device monitoring
+- Flask for web dashboard
+- Network connectivity for testing
 
-## 🔧 Installation
+## Installation
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/network-monitor-pi.git
+   git clone https://github.com/joshuahuggard96/network-monitor-pi.git
    cd network-monitor-pi
    ```
 
 2. **Install Python dependencies**
    ```bash
-   pip install -r requirements.txt
-   ```
-   
-   Or manually install:
-   ```bash
+   # For Windows
    pip install ping3 flask
+   
+   # For Linux/WSL
+   pip3 install ping3 flask
    ```
 
-3. **Linux/Raspberry Pi Setup** (if needed)
+3. **Linux/WSL Permission Setup** (if needed)
    ```bash
-   # Grant ping capabilities to Python (recommended)
+   # Grant ping capabilities to Python (optional)
    sudo setcap cap_net_raw+ep $(which python3)
    
-   # Alternative: run with sudo if permission errors occur
-   sudo python3 app.py
+   # Or run with sudo if permission errors occur
+   sudo python3 app_v0.4.py
    ```
 
-## 🚀 Usage
+## Usage
 
-### Starting the Application
+### Web Dashboard (Recommended)
 ```bash
+python3 app_v0.4.py
+```
+- Open your browser to `http://localhost:5000`
+- Real-time web dashboard showing:
+  - Overall network status
+  - Individual IP address status (Online/Offline)
+  - Last update timestamp
+  - Auto-refreshing every 2 seconds
+
+### Command Line Versions
+```bash
+# Basic version with subprocess
 python3 app.py
+
+# Threading version with background monitoring
+python3 app_v2.py
+
+# Flask version with API endpoints
+python3 app_v0.3.py
 ```
 
-The application will:
-- Start the monitoring thread
-- Launch the web server on port 5000
-- Begin pinging configured devices every 500ms
-- Display status information in the console
-
-### Web Dashboard Access
+### Web Access
 - **Local access**: `http://localhost:5000`
 - **Network access**: `http://YOUR_COMPUTER_IP:5000`
-- **Raspberry Pi**: `http://raspberrypi.local:5000`
+- **API endpoint**: `http://localhost:5000/api/status` (JSON response)
 
-### Web Interface Features
+## Configuration
 
-#### Main Dashboard
-- **Overall Status**: Shows "Relay Status ON/OFF" based on all devices
-- **Device List**: Individual cards for each monitored device
-- **Status Indicators**: 
-  - 🟢 Online - Device responding to pings
-  - 🔴 Offline - Device not responding
-  - 🟡 Checking - Status being determined
-- **Real-time Updates**: Auto-refresh every 500ms
+Edit the variables at the top of `app_v0.4.py` to customize monitoring:
 
-#### Device Management
-- **Add Device Form**:
-  - Device Name field (e.g., "Router", "Phone")
-  - IP Address field with validation
-  - Real-time validation feedback
-- **Remove Devices**: Each device has a "Remove" button with confirmation
-- **Persistent Storage**: Changes automatically saved to `devices.py`
-
-## ⚙️ Configuration
-
-### Default Configuration
-The application starts with these default devices in `devices.py`:
 ```python
-device_list = {
-    "Router": {
-        "ip": "192.168.0.1",
-        "status": None,
-        "last_online": None
-    },
-    "google dns": {
-        "ip": "8.8.8.8",
-        "status": None,
-        "last_online": None
-    },
-    "Iphone": {
-        "ip": "192.168.0.140",
-        "status": None,
-        "last_online": None
-    }
-}
+ping_interval = 5           # Seconds between ping cycles
+times_to_check = 2         # Successful pings needed for "online" status
+ip_address_list = [        # IPs to monitor
+    "192.168.16.1",        # Router/Gateway  
+    "8.8.8.8",             # Google DNS
+    "1.1.1.1"              # Cloudflare DNS
+]
 ```
 
-### Application Settings
-Edit the constants at the top of `app.py`:
-```python
-PING_INTERVAL = 0.5  # Seconds between ping cycles
-HOST = '0.0.0.0'     # Listen on all interfaces
-PORT = 5000          # Web server port
+### Web Dashboard Features
+- **Real-time Updates**: Dashboard refreshes automatically every 2 seconds
+- **Individual IP Status**: Each IP shows as Online ✅ or Offline ❌
+- **Overall Status**: Shows "Network Online" when all IPs are reachable
+- **Responsive Design**: Works on desktop and mobile devices
+- **Clean Interface**: Simple, easy-to-read status indicators
+
+### Disable Flask Request Logs
+To reduce console output, the application disables HTTP request logging by default. You'll only see:
+```
+Network Monitoring started
+web server accessible on Localhost:5000
+pinging IP List:
+Ping to 192.168.16.1 successful. ✅
 ```
 
-## 🔌 API Endpoints
+## Platform-Specific Notes
 
-### GET `/api/status`
-Returns current network status and device information.
+### Windows
+- Uses `-n` parameter for ping count
+- Works with Windows Command Prompt or PowerShell
+- No special permissions required for system ping
 
-**Response:**
+### Linux/WSL
+- Uses `-c` parameter for ping count  
+- May require elevated permissions for ICMP packets
+- Fallback to system ping if library fails
+
+### Cross-Platform Compatibility
+The code automatically detects the operating system and uses appropriate ping parameters.
+
+## Features Comparison
+
+| Feature | app.py | app_v2.py | app_v0.3.py | app_v0.4.py |
+|---------|--------|-----------|-------------|-------------|
+| Basic ping functionality | ✅ | ✅ | ✅ | ✅ |
+| Background monitoring | ❌ | ✅ | ✅ | ✅ |
+| Threading support | ❌ | ✅ | ✅ | ✅ |
+| Web dashboard | ❌ | ❌ | ✅ | ✅ |
+| Individual IP status | ❌ | ❌ | ❌ | ✅ |
+| API endpoints | ❌ | ❌ | ✅ | ✅ |
+| Real-time updates | ❌ | ✅ | ✅ | ✅ |
+| Clean logging | ❌ | ❌ | ❌ | ✅ |
+| Interactive menu | ✅ | ❌ | ❌ | ❌ |
+
+## Screenshots
+
+### Web Dashboard
+The web interface provides:
+- Overall network status indicator
+- Individual IP address cards showing online/offline status
+- Automatic refresh every 2 seconds
+- Clean, responsive design that works on all devices
+- Last updated timestamp
+
+### API Response Example
 ```json
 {
-  "output_status": true,
+  "network_status": true,
   "timestamp": 1692014338.123,
-  "device_list": {
-    "Router": {
-      "ip": "192.168.0.1",
-      "status": true,
-      "last_online": "2025-08-21 14:30:15"
-    },
-    "google dns": {
-      "ip": "8.8.8.8",
-      "status": true,
-      "last_online": "2025-08-21 14:30:15"
-    }
+  "ip_addresses": ["192.168.16.1", "8.8.8.8", "1.1.1.1"],
+  "ip_status": {
+    "192.168.16.1": true,
+    "8.8.8.8": true, 
+    "1.1.1.1": false
   }
 }
 ```
 
-### POST `/api/add-device`
-Add a new device to monitor.
+## Troubleshooting
 
-**Request:**
-```json
-{
-  "name": "New Router",
-  "ip": "192.168.1.1"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Device \"New Router\" added successfully"
-}
-```
-
-### POST `/api/remove-device`
-Remove a device from monitoring.
-
-**Request:**
-```json
-{
-  "name": "Old Device"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Device \"Old Device\" removed successfully"
-}
-```
-
-## 🖥️ Platform Support
-
-### Windows
-- Uses standard ping functionality
-- No special permissions required
-- Works with Command Prompt or PowerShell
-
-### Linux/Ubuntu/Debian
-- Requires ICMP permissions for optimal performance
-- Systemd service compatible
-- Supports headless operation
-
-### Raspberry Pi
-- Perfect for always-on monitoring
-- Low resource usage
-- Can integrate with GPIO for physical indicators
-
-### macOS
-- Full compatibility with macOS ping utilities
-- Works with both Intel and Apple Silicon Macs
-
-## 🔧 Advanced Usage
-
-### Running as a Service (Linux/Raspberry Pi)
-Create a systemd service file:
+### Permission Errors
 ```bash
-sudo nano /etc/systemd/system/network-monitor.service
-```
-
-```ini
-[Unit]
-Description=Network Monitor
-After=network.target
-
-[Service]
-Type=simple
-User=pi
-WorkingDirectory=/home/pi/network-monitor-pi
-ExecStart=/usr/bin/python3 app.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-Enable and start:
-```bash
-sudo systemctl enable network-monitor.service
-sudo systemctl start network-monitor.service
-```
-
-### Docker Deployment
-```dockerfile
-FROM python:3.9-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-
-EXPOSE 5000
-CMD ["python", "app.py"]
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Permission Errors (Linux/macOS)**
-```bash
-# Solution 1: Grant capabilities
+# Linux/WSL: Grant ping capabilities
 sudo setcap cap_net_raw+ep $(which python3)
 
-# Solution 2: Run with sudo
-sudo python3 app.py
+# Or run with elevated privileges
+sudo python3 app_v0.4.py
 ```
 
-**Module Not Found**
+### Module Not Found
 ```bash
-pip install ping3 flask
-# or for Python 3 specifically
+# Install missing dependencies
 pip3 install ping3 flask
 ```
 
-**Web Dashboard Not Loading**
-- Verify the server is running: Look for "Web interface available at http://localhost:5000"
-- Check firewall settings
-- Try `http://127.0.0.1:5000` instead of `localhost`
-- Ensure port 5000 is not in use by another application
+### Web Dashboard Not Loading
+- Verify Flask is running: Check console for "web server accessible on Localhost:5000"
+- Check firewall settings if accessing from other devices
+- Try `http://127.0.0.1:5000` instead of `localhost:5000`
 
-**Devices Not Responding**
-- Verify IP addresses are correct and reachable
-- Test manual ping: `ping 8.8.8.8`
-- Check network connectivity
-- Verify firewall allows ICMP packets
+### Network Issues
+- Verify IP addresses are reachable with manual ping: `ping 8.8.8.8`
+- Check firewall settings blocking ICMP packets
+- Test with different IP addresses (try `1.1.1.1` or `8.8.8.8`)
+- Ensure network adapter is connected
 
-**File Permission Errors**
-```bash
-# Ensure write permissions for device configuration
-chmod 664 devices.py
-```
-
-### Debug Mode
-Enable debug logging by changing the logging level in `app.py`:
+### Flask Request Logs
+If you see HTTP request logs cluttering output, they should be disabled by default in the latest version. If not, add this before `app.run()`:
 ```python
-logging.basicConfig(level=logging.DEBUG)
+import logging
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 ```
 
-## 📊 Monitoring Best Practices
+## Development
 
-### Device Selection
-- **Gateway/Router**: Always monitor your network gateway
-- **Critical Services**: Include essential servers and services
-- **External Connectivity**: Add public DNS servers (8.8.8.8, 1.1.1.1)
-- **Local Devices**: Monitor important local devices
+### Adding New Features
+1. Fork the repository
+2. Create a feature branch
+3. Implement changes
+4. Test on multiple platforms
+5. Submit a pull request
 
-### Ping Interval Considerations
-- **Fast Response**: 0.5s interval for real-time monitoring
-- **Reduced Load**: 5-10s interval for less network traffic
-- **Battery Devices**: Longer intervals for mobile devices
+### Contributing
+- Follow Python PEP 8 style guidelines
+- Add comments for complex logic
+- Test on both Windows and Linux
+- Update documentation as needed
 
-### Network Design
-- Place monitor on reliable network segment
-- Consider multiple monitoring points for redundancy
-- Monitor both internal and external connectivity
+## License
 
-## 🤝 Contributing
+MIT License - feel free to modify and distribute as needed.
+
+## Future Enhancements
+
+- [ ] Email/SMS notifications when network goes down
+- [ ] Historical data logging and charts
+- [ ] Raspberry Pi GPIO integration (LED indicators)
+- [ ] Configuration file support (YAML/JSON config)
+- [ ] Multiple monitoring profiles/groups
+- [ ] Network latency tracking and graphs
+- [ ] Export data to CSV/Excel
+- [ ] Mobile app companion
+- [ ] Docker containerization
+- [ ] Prometheus/Grafana integration
+- [ ] Custom alert thresholds per IP
+- [ ] Webhook notifications
+
+## Contributing
 
 ### Development Setup
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-amazing-feature`
-3. Install development dependencies: `pip install -r requirements.txt`
-4. Make your changes
-5. Test on multiple platforms
-6. Update documentation
-7. Submit a pull request
+2. Create a feature branch: `git checkout -b feature-name`
+3. Make your changes
+4. Test on multiple platforms (Windows/Linux)
+5. Update documentation as needed
+6. Submit a pull request
 
 ### Code Style
 - Follow Python PEP 8 style guidelines
-- Add comprehensive docstrings
-- Include error handling
-- Write unit tests for new features
-- Update README for significant changes
+- Add comments for complex logic
+- Include docstrings for functions
+- Test thoroughly before submitting
 
-### Testing
-```bash
-# Run basic functionality test
-python3 -c "from app import ping_device; print('Import successful')"
+## License
 
-# Test web interface
-curl http://localhost:5000/api/status
-```
+MIT License - feel free to modify and distribute as needed.
 
-## 📈 Future Enhancements
-
-- [ ] Historical data logging and visualization
-- [ ] Email/SMS/Webhook notifications
-- [ ] Network latency tracking and graphs
-- [ ] Multiple monitoring profiles
-- [ ] Configuration file import/export
-- [ ] Raspberry Pi GPIO integration
-- [ ] Mobile-responsive design improvements
-- [ ] Docker Compose deployment
-- [ ] Prometheus metrics export
-- [ ] Custom alert thresholds per device
-- [ ] Network topology discovery
-- [ ] Performance metrics dashboard
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
+## Author
 
 **Joshua Huggard** - [joshuahuggard96](https://github.com/joshuahuggard96)
 
-## 🔗 Links
-
-- **GitHub Repository**: [https://github.com/joshuahuggard96/network-monitor-pi](https://github.com/joshuahuggard96/network-monitor-pi)
-- **Issues**: [Report bugs or request features](https://github.com/joshuahuggard96/network-monitor-pi/issues)
-- **Wiki**: [Additional documentation and examples](https://github.com/joshuahuggard96/network-monitor-pi/wiki)
-
-## ⭐ Show Your Support
-
-Give a ⭐️ if this project helped you monitor your network effectively!
-
----
-
-**Built with ❤️ for reliable network monitoring**
+Project Link: [https://github.com/joshuahuggard96/network-monitor-pi](https://github.com/joshuahuggard96/network-monitor-pi)

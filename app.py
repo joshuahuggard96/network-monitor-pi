@@ -4,13 +4,16 @@ from ping3 import ping
 from flask import Flask, render_template, jsonify
 import logging
 from devices import device_list
+import socket
 
 app = Flask(__name__)
 
 ## Variables
 ping_interval = 0.5  # seconds
 output_status = False  # Initialize the output status
-
+#Socket Variables 
+Host = '127.0.0.1'
+Port = 7000
 
 ## Function to ping an IP address
 def ping_device(device):
@@ -40,6 +43,16 @@ def ping_device_list(list):
        time.sleep(ping_interval)
 
 
+## Fuction for socket output for relay output 
+def Send_output(host, port,):
+    global output_status
+    while True:
+        message = str(f"{output_status}<cr>")
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((host, port))
+            s.sendall(message.encode('utf-8'))
+            print(f"sent out to: {host} on Port: {port}")
+            time.sleep(ping_interval)
 
 
 
@@ -112,6 +125,10 @@ if __name__ == '__main__':
 
     ping_thread = threading.Thread(target=ping_device_list, args=(device_list,), daemon=True)
     ping_thread.start()
+
+    socket_thread = threading.Thread(target=Send_output, args=(Host,Port,), daemon=True)
+    socket_thread.start()
+
     
     print("Network Monitoring started")
     print("web server accessable on Localhost:5000")

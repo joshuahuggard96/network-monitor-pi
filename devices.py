@@ -1,6 +1,6 @@
 device_list = {
     "Router": {
-        "ip": "192.168.0.1",
+        "ip": "10.5.32.1",
         "status": None, 
         "last_online": None
     },
@@ -10,7 +10,7 @@ device_list = {
         "last_online": None
     },
     "Iphone": {
-        "ip": "192.168.0.140",
+        "ip": "10.5.33.222",
         "status": None, 
         "last_online": None
     }

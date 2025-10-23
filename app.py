@@ -40,19 +40,23 @@ def ping_device_list(list):
           print(device["status"])
        output_status = all_devices_online
        print(f"relay on {output_status}")
+       Send_output(Host, Port)
        time.sleep(ping_interval)
 
 
 ## Fuction for socket output for relay output 
-def Send_output(host, port,):
+def Send_output(h, p,):
     global output_status
-    while True:
+    try:
         message = str(f"{output_status}<cr>")
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((host, port))
+            s.connect((h, p))
             s.sendall(message.encode('utf-8'))
-            print(f"sent out to: {host} on Port: {port}")
+            print(f"sent out to: {h} on Port: {p}")
             time.sleep(ping_interval)
+    except Exception as e:
+        print(f"an unexpected socket error occured: {e}")
+
 
 
 
@@ -126,8 +130,8 @@ if __name__ == '__main__':
     ping_thread = threading.Thread(target=ping_device_list, args=(device_list,), daemon=True)
     ping_thread.start()
 
-    socket_thread = threading.Thread(target=Send_output, args=(Host,Port,), daemon=True)
-    socket_thread.start()
+##    socket_thread = threading.Thread(target=Send_output, args=(Host,Port,), daemon=True)
+##    socket_thread.start()
 
     
     print("Network Monitoring started")

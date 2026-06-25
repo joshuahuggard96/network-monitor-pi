@@ -18,7 +18,7 @@ Port = 7000
 ## Function to ping an IP address
 def ping_device(device):
   ip = device["ip"]
-  response = ping(ip)
+  response = ping(ip, timeout=2)
   timestamp = time.strftime("%d %b %Y %H:%M:%S")
   if response:
     device["status"] = True
@@ -130,8 +130,6 @@ if __name__ == '__main__':
     ping_thread = threading.Thread(target=ping_device_list, args=(device_list,), daemon=True)
     ping_thread.start()
 
-##    socket_thread = threading.Thread(target=Send_output, args=(Host,Port,), daemon=True)
-##    socket_thread.start()
 
     
     print("Network Monitoring started")

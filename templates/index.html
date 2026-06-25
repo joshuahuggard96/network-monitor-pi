@@ -4,22 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Network Monitor</title>
-    <script src="{{ url_for('static', filename='/htmx/htmx-1.9.12.js') }}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <div class="container">
         <h1>Network Monitor Dashboard</h1>
-        
-        <!-- This div will auto-update every 500ms -->
-        <div hx-get="/api/status-html" 
-             hx-trigger="load, every 500ms"
-             hx-target="this"
-             hx-swap="innerHTML">
-            <!-- Initial content while loading -->
+        <div id="status-container">
             <div class="status offline">Loading</div>
-            <div id="ip-list"><h3>Device Status:</h3></div>
         </div>
     </div>
+    <script>
+        function update(data) {
+            const relay = `<div class="status ${data.output_status ? 'online' : 'offline'}">Relay Status ${data.output_status ? 'ON' : 'OFF'}</div>`;
+            const rows = Object.entries(data.device_list).map(([name, d]) => {
+                const cls = d.status === true ? 'ip-online' : d.status === false ? 'ip-offline' : 'ip-checking';
+                const label = d.status === true ? 'Online' : d.status === false ? 'Offline' : 'Checking';
+                return `<div class="ip-item ${cls}"><strong>${name}</strong> <span class="status-indicator">${label}</span></div>`;
+            }).join('');
+            document.getElementById('status-container').innerHTML =
+                relay + '<div id="ip-list"><h3>Device Status:</h3>' + rows + '</div>';
+        }
+        setInterval(() => fetch('/api/status').then(r => r.json()).then(update), 500);
+    </script>
 </body>
 </html>

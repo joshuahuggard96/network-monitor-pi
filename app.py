@@ -59,5 +59,5 @@ def get_status():
 if __name__ == '__main__':
     logging.getLogger("werkzeug").setLevel(logging.ERROR)
     threading.Thread(target=ping_device_list, daemon=True).start()
-    print("Network Monitoring started — http://localhost:5000")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    print("Network Monitoring started — http://localhost:8080")
+    app.run(host='0.0.0.0', port=8080, debug=False)

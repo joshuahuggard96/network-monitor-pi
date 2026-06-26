@@ -8,23 +8,87 @@
 </head>
 <body>
     <div class="container">
-        <h1>Network Monitor Dashboard</h1>
-        <div id="status-container">
-            <div class="status offline">Loading</div>
-        </div>
+        <h1>Network Monitor</h1>
+
+        <!-- Network Status -->
+        <section>
+            <h2>Network Status</h2>
+            <div id="status-container"><div class="status loading">Loading&hellip;</div></div>
+        </section>
+
+        <!-- MFW Status -->
+        <section>
+            <h2>MFW System</h2>
+            <div id="mfw-status"><div class="status loading">Loading&hellip;</div></div>
+        </section>
+
+        <!-- Send Test Page -->
+        <section>
+            <h2>Send Test Page</h2>
+            <div class="panel">
+                <input id="page-msg" type="text" placeholder="Message (e.g. Router Offline)" />
+                <button onclick="sendPage()">Send to MFW</button>
+                <span id="page-result"></span>
+            </div>
+        </section>
+
+        <!-- Pager Directory -->
+        <section>
+            <h2>Pager Directory</h2>
+            <div id="pager-dir"><div class="status loading">Loading&hellip;</div></div>
+        </section>
+
+        <!-- MFW Alarm Log -->
+        <section>
+            <h2>MFW Alarm Log</h2>
+            <iframe id="mfw-log" src="/api/mfw-log" title="MFW Log"></iframe>
+        </section>
     </div>
+
     <script>
-        function update(data) {
-            const relay = `<div class="status ${data.output_status ? 'online' : 'offline'}">Relay Status ${data.output_status ? 'ON' : 'OFF'}</div>`;
+        function updateNetwork(data) {
+            const relay = `<div class="status ${data.output_status ? 'online' : 'offline'}">Relay: ${data.output_status ? 'ON' : 'OFF'}</div>`;
             const rows = Object.entries(data.device_list).map(([name, d]) => {
                 const cls = d.status === true ? 'ip-online' : d.status === false ? 'ip-offline' : 'ip-checking';
                 const label = d.status === true ? 'Online' : d.status === false ? 'Offline' : 'Checking';
-                return `<div class="ip-item ${cls}"><strong>${name}</strong> <span class="status-indicator">${label}</span></div>`;
+                const last = d.last_online ? `<span class="last-online">Last online: ${d.last_online}</span>` : '';
+                return `<div class="ip-item ${cls}"><strong>${name}</strong><span class="status-indicator">${label}</span>${last}</div>`;
             }).join('');
-            document.getElementById('status-container').innerHTML =
-                relay + '<div id="ip-list"><h3>Device Status:</h3>' + rows + '</div>';
+            document.getElementById('status-container').innerHTML = relay + '<div id="ip-list">' + rows + '</div>';
         }
-        setInterval(() => fetch('/api/status').then(r => r.json()).then(update), 500);
+
+        function updateMfw(data) {
+            const status = data.mfra_running
+                ? '<div class="status online">MFRA Running</div>'
+                : '<div class="status offline">MFRA Stopped</div>';
+            document.getElementById('mfw-status').innerHTML = status;
+
+            const rows = data.pagers.filter(p => p.user !== '*').map(p =>
+                `<div class="ip-item ip-checking"><strong>${p.user}</strong><span>${p.msg}</span><span class="status-indicator">${p.addr}</span></div>`
+            ).join('');
+            document.getElementById('pager-dir').innerHTML = rows || '<p>No pagers found.</p>';
+        }
+
+        function sendPage() {
+            const msg = document.getElementById('page-msg').value.trim();
+            if (!msg) return;
+            fetch('/api/page', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({message: msg})})
+                .then(r => r.json())
+                .then(d => {
+                    const el = document.getElementById('page-result');
+                    el.textContent = `Sent: ${d.sent}`;
+                    setTimeout(() => el.textContent = '', 3000);
+                });
+        }
+
+        // Network polls every 500ms, MFW every 5s, log refreshes every 30s
+        setInterval(() => fetch('/api/status').then(r => r.json()).then(updateNetwork), 500);
+        setInterval(() => fetch('/api/mfw').then(r => r.json()).then(updateMfw), 5000);
+        setInterval(() => document.getElementById('mfw-log').src = '/api/mfw-log?' + Date.now(), 30000);
+
+        // Initial load
+        fetch('/api/status').then(r => r.json()).then(updateNetwork);
+        fetch('/api/mfw').then(r => r.json()).then(updateMfw);
     </script>
 </body>
 </html>

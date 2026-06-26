@@ -119,7 +119,7 @@ def get_mfw():
 
 @app.route('/api/mfw-log')
 def get_mfw_log():
-    files = sorted(glob.glob(f'{MFW_LOG_DIR}/*.htm'))
+    files = sorted(glob.glob(f'{MFW_LOG_DIR}/099-099-00*.htm'))
     if not files:
         return '<p>No logs found.</p>', 200, {'Content-Type': 'text/html'}
     try:

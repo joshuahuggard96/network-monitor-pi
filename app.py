@@ -2,6 +2,8 @@ import threading
 import time
 import glob
 import subprocess
+import json
+import os
 from ping3 import ping
 from flask import Flask, render_template, jsonify, request
 import logging
@@ -15,12 +17,32 @@ HOST = '127.0.0.1'
 PORT = 7000
 MFW_DIR = '/home/seeroot/mfw'
 MFW_LOG_DIR = '/var/www/html/logs'
+DEVICES_FILE = os.path.join(os.path.dirname(__file__), 'devices.json')
 
-device_list = {
-    "Router":     {"ip": "10.5.32.1",   "status": None, "last_online": None},
-    "Google DNS": {"ip": "8.8.8.8",     "status": None, "last_online": None},
-    "Iphone":     {"ip": "10.5.33.222", "status": None, "last_online": None},
+DEFAULTS = {
+    "Router":     "10.5.32.1",
+    "Google DNS": "8.8.8.8",
+    "Iphone":     "10.5.33.222",
 }
+
+
+def load_devices():
+    if os.path.exists(DEVICES_FILE):
+        try:
+            with open(DEVICES_FILE) as f:
+                saved = json.load(f)
+            return {k: {"ip": v, "status": None, "last_online": None} for k, v in saved.items()}
+        except Exception:
+            pass
+    return {k: {"ip": v, "status": None, "last_online": None} for k, v in DEFAULTS.items()}
+
+
+def save_devices():
+    with open(DEVICES_FILE, 'w') as f:
+        json.dump({k: v["ip"] for k, v in device_list.items()}, f)
+
+
+device_list = load_devices()
 
 
 def send_mfw(msg):
@@ -34,22 +56,25 @@ def send_mfw(msg):
 
 
 def ping_device(device):
-    response = ping(device["ip"], timeout=2)
-    device["status"] = bool(response)
-    if response:
-        device["last_online"] = time.strftime("%d %b %Y %H:%M:%S")
+    try:
+        response = ping(device["ip"], timeout=2)
+        device["status"] = bool(response)
+        if response:
+            device["last_online"] = time.strftime("%d %b %Y %H:%M:%S")
+    except Exception:
+        device["status"] = False
 
 
 def ping_device_list():
     global output_status
-    # ponytail: None means "unset" — avoids false alerts on first startup
-    prev = {name: None for name in device_list}
+    prev = {}
     while True:
-        for name, device in device_list.items():
+        # ponytail: snapshot avoids RuntimeError if device_list changes mid-loop
+        for name, device in list(device_list.items()):
             ping_device(device)
-            if device["status"] != prev[name] and prev[name] is not None:
-                label = "Online" if device["status"] else "Offline"
-                send_mfw(f"{name} {label}")
+            last = prev.get(name)
+            if device["status"] != last and last is not None:
+                send_mfw(f"{name} {'Online' if device['status'] else 'Offline'}")
             prev[name] = device["status"]
         output_status = all(d["status"] for d in device_list.values())
         time.sleep(ping_interval)
@@ -63,6 +88,27 @@ def index():
 @app.route('/api/status')
 def get_status():
     return jsonify({'output_status': output_status, 'device_list': device_list})
+
+
+@app.route('/api/devices', methods=['POST'])
+def add_device():
+    data = request.get_json(force=True, silent=True) or {}
+    name = data.get('name', '').strip()
+    ip   = data.get('ip', '').strip()
+    if not name or not ip:
+        return jsonify({'error': 'name and ip required'}), 400
+    device_list[name] = {"ip": ip, "status": None, "last_online": None}
+    save_devices()
+    return jsonify({'added': name})
+
+
+@app.route('/api/devices/<name>', methods=['DELETE'])
+def remove_device(name):
+    if name not in device_list:
+        return jsonify({'error': 'not found'}), 404
+    del device_list[name]
+    save_devices()
+    return jsonify({'removed': name})
 
 
 @app.route('/api/mfw')

@@ -16,6 +16,17 @@
             <div id="status-container"><div class="status loading">Loading&hellip;</div></div>
         </section>
 
+        <!-- Add Device -->
+        <section>
+            <h2>Devices</h2>
+            <div class="panel">
+                <input id="dev-name" type="text" placeholder="Device name" />
+                <input id="dev-ip"   type="text" placeholder="IP address" />
+                <button onclick="addDevice()">Add</button>
+                <span id="dev-result"></span>
+            </div>
+        </section>
+
         <!-- MFW Status -->
         <section>
             <h2>MFW System</h2>
@@ -43,10 +54,15 @@
         function updateNetwork(data) {
             const relay = `<div class="status ${data.output_status ? 'online' : 'offline'}">Relay: ${data.output_status ? 'ON' : 'OFF'}</div>`;
             const rows = Object.entries(data.device_list).map(([name, d]) => {
-                const cls = d.status === true ? 'ip-online' : d.status === false ? 'ip-offline' : 'ip-checking';
-                const label = d.status === true ? 'Online' : d.status === false ? 'Offline' : 'Checking';
-                const last = d.last_online ? `<span class="last-online">Last online: ${d.last_online}</span>` : '';
-                return `<div class="ip-item ${cls}"><strong>${name}</strong><span class="status-indicator">${label}</span>${last}</div>`;
+                const cls   = d.status === true ? 'ip-online' : d.status === false ? 'ip-offline' : 'ip-checking';
+                const label = d.status === true ? 'Online'    : d.status === false ? 'Offline'    : 'Checking';
+                const last  = d.last_online ? `<span class="last-online">Last online: ${d.last_online}</span>` : '';
+                return `<div class="ip-item ${cls}">
+                    <strong>${name}</strong>
+                    <span class="status-indicator">${label}</span>
+                    ${last}
+                    <button class="remove-btn" onclick="removeDevice('${name}')">&#x2715;</button>
+                </div>`;
             }).join('');
             document.getElementById('status-container').innerHTML = relay + '<div id="ip-list">' + rows + '</div>';
         }
@@ -55,6 +71,26 @@
             document.getElementById('mfw-status').innerHTML = data.mfra_running
                 ? '<div class="status online">MFRA Running</div>'
                 : '<div class="status offline">MFRA Stopped</div>';
+        }
+
+        function addDevice() {
+            const name = document.getElementById('dev-name').value.trim();
+            const ip   = document.getElementById('dev-ip').value.trim();
+            if (!name || !ip) return;
+            fetch('/api/devices', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, ip})})
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById('dev-name').value = '';
+                    document.getElementById('dev-ip').value   = '';
+                    const el = document.getElementById('dev-result');
+                    el.textContent = d.error ? d.error : `Added: ${d.added}`;
+                    setTimeout(() => el.textContent = '', 3000);
+                });
+        }
+
+        function removeDevice(name) {
+            fetch('/api/devices/' + encodeURIComponent(name), {method:'DELETE'})
+                .then(r => r.json());
         }
 
         function sendPage() {
@@ -69,12 +105,10 @@
                 });
         }
 
-        // Network polls every 500ms, MFW every 5s, log refreshes every 30s
         setInterval(() => fetch('/api/status').then(r => r.json()).then(updateNetwork), 500);
         setInterval(() => fetch('/api/mfw').then(r => r.json()).then(updateMfw), 5000);
         setInterval(() => document.getElementById('mfw-log').src = '/api/mfw-log?' + Date.now(), 30000);
 
-        // Initial load
         fetch('/api/status').then(r => r.json()).then(updateNetwork);
         fetch('/api/mfw').then(r => r.json()).then(updateMfw);
     </script>

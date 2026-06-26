@@ -4,12 +4,19 @@ import glob
 import subprocess
 import json
 import os
+import re
+from functools import wraps
 from ping3 import ping
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session
 import logging
 import socket
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))
+
+APP_PASSWORD = os.environ.get('APP_PASSWORD', '')
+if not APP_PASSWORD:
+    print("WARNING: APP_PASSWORD not set — write routes are disabled")
 
 ping_interval = 0.5
 output_status = False
@@ -25,6 +32,8 @@ DEFAULTS = {
     "Iphone":     "10.5.33.222",
 }
 
+device_lock = threading.Lock()
+
 
 def load_devices():
     if os.path.exists(DEVICES_FILE):
@@ -32,18 +41,63 @@ def load_devices():
             with open(DEVICES_FILE) as f:
                 saved = json.load(f)
             return {k: {"ip": v, "status": None, "last_online": None} for k, v in saved.items()}
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"devices.json load error: {e} — using defaults")
     return {k: {"ip": v, "status": None, "last_online": None} for k, v in DEFAULTS.items()}
 
 
 def save_devices():
-    with open(DEVICES_FILE, 'w') as f:
-        json.dump({k: v["ip"] for k, v in device_list.items()}, f)
+    with device_lock:
+        with open(DEVICES_FILE, 'w') as f:
+            json.dump({k: v["ip"] for k, v in device_list.items()}, f)
 
 
 device_list = load_devices()
 
+
+# --- Auth ---
+
+def requires_auth(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('authed'):
+            return jsonify({'error': 'Unauthorized'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route('/login', methods=['POST'])
+def login():
+    data = request.get_json(force=True, silent=True) or {}
+    if APP_PASSWORD and data.get('password') == APP_PASSWORD:
+        session['authed'] = True
+        return jsonify({'ok': True})
+    return jsonify({'error': 'Wrong password'}), 401
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/auth')
+def auth_status():
+    return jsonify({'authed': bool(session.get('authed'))})
+
+
+# --- Validation ---
+
+def valid_ip(ip):
+    m = re.match(r'^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$', ip)
+    return bool(m and all(0 <= int(g) <= 255 for g in m.groups()))
+
+
+def valid_name(name):
+    return bool(name and len(name) <= 50 and re.match(r'^[A-Za-z0-9 _\-]+$', name))
+
+
+# --- Core ---
 
 def send_mfw(msg):
     try:
@@ -69,7 +123,6 @@ def ping_device_list():
     global output_status
     prev = {}
     while True:
-        # ponytail: snapshot avoids RuntimeError if device_list changes mid-loop
         for name, device in list(device_list.items()):
             ping_device(device)
             last = prev.get(name)
@@ -79,6 +132,8 @@ def ping_device_list():
         output_status = all(d["status"] for d in device_list.values())
         time.sleep(ping_interval)
 
+
+# --- Routes ---
 
 @app.route('/')
 def index():
@@ -91,22 +146,28 @@ def get_status():
 
 
 @app.route('/api/devices', methods=['POST'])
+@requires_auth
 def add_device():
     data = request.get_json(force=True, silent=True) or {}
     name = data.get('name', '').strip()
     ip   = data.get('ip', '').strip()
-    if not name or not ip:
-        return jsonify({'error': 'name and ip required'}), 400
-    device_list[name] = {"ip": ip, "status": None, "last_online": None}
+    if not valid_name(name):
+        return jsonify({'error': 'Invalid name (max 50 chars, letters/numbers/spaces/-/_)'}), 400
+    if not valid_ip(ip):
+        return jsonify({'error': 'Invalid IP address'}), 400
+    with device_lock:
+        device_list[name] = {"ip": ip, "status": None, "last_online": None}
     save_devices()
     return jsonify({'added': name})
 
 
 @app.route('/api/devices/<name>', methods=['DELETE'])
+@requires_auth
 def remove_device(name):
-    if name not in device_list:
-        return jsonify({'error': 'not found'}), 404
-    del device_list[name]
+    with device_lock:
+        if name not in device_list:
+            return jsonify({'error': 'not found'}), 404
+        del device_list[name]
     save_devices()
     return jsonify({'removed': name})
 
@@ -130,9 +191,12 @@ def get_mfw_log():
 
 
 @app.route('/api/page', methods=['POST'])
+@requires_auth
 def send_page():
     data = request.get_json(force=True, silent=True) or {}
-    msg = data.get('message', 'Test')
+    msg = data.get('message', '').strip()[:100]
+    if not msg:
+        return jsonify({'error': 'message required'}), 400
     send_mfw(msg)
     return jsonify({'sent': msg})
 

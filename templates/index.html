@@ -7,8 +7,22 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+
+    <!-- Login overlay -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2>Network Monitor</h2>
+            <input id="login-pw" type="password" placeholder="Password" autocomplete="current-password" />
+            <button onclick="doLogin()">Login</button>
+            <p id="login-error"></p>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>Network Monitor</h1>
+        <div class="header-row">
+            <h1>Network Monitor</h1>
+            <button class="logout-btn" onclick="doLogout()">Logout</button>
+        </div>
 
         <!-- Network Status -->
         <section>
@@ -51,20 +65,86 @@
     </div>
 
     <script>
+        // Escape user-controlled strings before inserting into HTML
+        function esc(s) {
+            return String(s)
+                .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
+        // --- Auth ---
+        function doLogin() {
+            const pw = document.getElementById('login-pw').value;
+            fetch('/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pw})})
+                .then(r => r.json())
+                .then(d => {
+                    if (d.ok) {
+                        document.getElementById('login-overlay').style.display = 'none';
+                    } else {
+                        document.getElementById('login-error').textContent = 'Wrong password';
+                    }
+                });
+        }
+
+        document.getElementById('login-pw').addEventListener('keydown', e => {
+            if (e.key === 'Enter') doLogin();
+        });
+
+        function doLogout() {
+            fetch('/logout', {method:'POST'}).then(() => {
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('login-pw').value = '';
+                document.getElementById('login-error').textContent = '';
+            });
+        }
+
+        fetch('/api/auth').then(r => r.json()).then(d => {
+            if (d.authed) document.getElementById('login-overlay').style.display = 'none';
+        });
+
+        // --- Network status ---
         function updateNetwork(data) {
             const relay = `<div class="status ${data.output_status ? 'online' : 'offline'}">Relay: ${data.output_status ? 'ON' : 'OFF'}</div>`;
-            const rows = Object.entries(data.device_list).map(([name, d]) => {
+            const container = document.createElement('div');
+            container.id = 'ip-list';
+
+            Object.entries(data.device_list).forEach(([name, d]) => {
                 const cls   = d.status === true ? 'ip-online' : d.status === false ? 'ip-offline' : 'ip-checking';
                 const label = d.status === true ? 'Online'    : d.status === false ? 'Offline'    : 'Checking';
-                const last  = d.last_online ? `<span class="last-online">Last online: ${d.last_online}</span>` : '';
-                return `<div class="ip-item ${cls}">
-                    <strong>${name}</strong>
-                    <span class="status-indicator">${label}</span>
-                    ${last}
-                    <button class="remove-btn" onclick="removeDevice('${name}')">&#x2715;</button>
-                </div>`;
-            }).join('');
-            document.getElementById('status-container').innerHTML = relay + '<div id="ip-list">' + rows + '</div>';
+
+                const row = document.createElement('div');
+                row.className = `ip-item ${cls}`;
+
+                const strong = document.createElement('strong');
+                strong.textContent = name;
+
+                const badge = document.createElement('span');
+                badge.className = 'status-indicator';
+                badge.textContent = label;
+
+                const btn = document.createElement('button');
+                btn.className = 'remove-btn';
+                btn.textContent = '✕';
+                btn.dataset.name = name;
+                btn.addEventListener('click', () => removeDevice(btn.dataset.name));
+
+                row.appendChild(strong);
+                row.appendChild(badge);
+
+                if (d.last_online) {
+                    const last = document.createElement('span');
+                    last.className = 'last-online';
+                    last.textContent = `Last online: ${d.last_online}`;
+                    row.appendChild(last);
+                }
+
+                row.appendChild(btn);
+                container.appendChild(row);
+            });
+
+            const sc = document.getElementById('status-container');
+            sc.innerHTML = relay;
+            sc.appendChild(container);
         }
 
         function updateMfw(data) {
@@ -73,6 +153,7 @@
                 : '<div class="status offline">MFRA Stopped</div>';
         }
 
+        // --- Device management ---
         function addDevice() {
             const name = document.getElementById('dev-name').value.trim();
             const ip   = document.getElementById('dev-ip').value.trim();
@@ -80,11 +161,13 @@
             fetch('/api/devices', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name, ip})})
                 .then(r => r.json())
                 .then(d => {
-                    document.getElementById('dev-name').value = '';
-                    document.getElementById('dev-ip').value   = '';
                     const el = document.getElementById('dev-result');
-                    el.textContent = d.error ? d.error : `Added: ${d.added}`;
-                    setTimeout(() => el.textContent = '', 3000);
+                    el.textContent = d.error || `Added: ${d.added}`;
+                    if (!d.error) {
+                        document.getElementById('dev-name').value = '';
+                        document.getElementById('dev-ip').value   = '';
+                    }
+                    setTimeout(() => el.textContent = '', 4000);
                 });
         }
 
@@ -93,6 +176,7 @@
                 .then(r => r.json());
         }
 
+        // --- Send page ---
         function sendPage() {
             const msg = document.getElementById('page-msg').value.trim();
             if (!msg) return;
@@ -100,17 +184,19 @@
                 .then(r => r.json())
                 .then(d => {
                     const el = document.getElementById('page-result');
-                    el.textContent = `Sent: ${d.sent}`;
+                    el.textContent = d.error ? d.error : `Sent: ${esc(d.sent)}`;
                     setTimeout(() => el.textContent = '', 3000);
                 });
         }
 
+        // --- Log scroll ---
         function scrollLogToBottom() {
             const f = document.getElementById('mfw-log');
             try { f.contentWindow.scrollTo(0, f.contentDocument.body.scrollHeight); } catch(e) {}
         }
         document.getElementById('mfw-log').onload = scrollLogToBottom;
 
+        // --- Polling ---
         setInterval(() => fetch('/api/status').then(r => r.json()).then(updateNetwork), 500);
         setInterval(() => fetch('/api/mfw').then(r => r.json()).then(updateMfw), 5000);
         setInterval(() => document.getElementById('mfw-log').src = '/api/mfw-log?' + Date.now(), 5000);

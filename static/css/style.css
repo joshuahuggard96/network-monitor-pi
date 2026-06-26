@@ -1,3 +1,69 @@
+/* Login overlay */
+#login-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.login-box {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    text-align: center;
+    width: 300px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+}
+
+.login-box h2 { margin: 0 0 20px; color: #333; }
+
+.login-box input {
+    width: 100%;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+
+.login-box button {
+    width: 100%;
+    padding: 10px;
+    background: #2c7be5;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.login-box button:hover { background: #1a68d0; }
+
+#login-error { color: #721c24; margin: 10px 0 0; font-size: 14px; min-height: 18px; }
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.logout-btn {
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    color: #666;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.logout-btn:hover { border-color: #999; color: #333; }
+
 body {
     font-family: Arial, sans-serif;
     max-width: 800px;

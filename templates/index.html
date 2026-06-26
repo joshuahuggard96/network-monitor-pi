@@ -113,7 +113,7 @@
 
         setInterval(() => fetch('/api/status').then(r => r.json()).then(updateNetwork), 500);
         setInterval(() => fetch('/api/mfw').then(r => r.json()).then(updateMfw), 5000);
-        setInterval(() => document.getElementById('mfw-log').src = '/api/mfw-log?' + Date.now(), 30000);
+        setInterval(() => document.getElementById('mfw-log').src = '/api/mfw-log?' + Date.now(), 5000);
 
         fetch('/api/status').then(r => r.json()).then(updateNetwork);
         fetch('/api/mfw').then(r => r.json()).then(updateMfw);

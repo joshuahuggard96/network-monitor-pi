@@ -2,7 +2,6 @@ import threading
 import time
 import glob
 import subprocess
-import xml.etree.ElementTree as ET
 from ping3 import ping
 from flask import Flask, render_template, jsonify, request
 import logging
@@ -69,18 +68,7 @@ def get_status():
 @app.route('/api/mfw')
 def get_mfw():
     proc = subprocess.run(['pgrep', '-f', 'MFRA'], capture_output=True)
-    pagers = []
-    try:
-        tree = ET.parse(f'{MFW_DIR}/integrator.xml')
-        for entry in tree.findall('.//Agent[@type="Alerter_2"]//Parameter[@name="AlDirc"]/Entry'):
-            pagers.append({
-                'user': entry.get('User'),
-                'addr': entry.get('Addr'),
-                'msg':  entry.get('Mesg'),
-            })
-    except Exception:
-        pass
-    return jsonify({'mfra_running': proc.returncode == 0, 'pagers': pagers})
+    return jsonify({'mfra_running': proc.returncode == 0})
 
 
 @app.route('/api/mfw-log')
@@ -97,7 +85,8 @@ def get_mfw_log():
 
 @app.route('/api/page', methods=['POST'])
 def send_page():
-    msg = request.json.get('message', 'Test')
+    data = request.get_json(force=True, silent=True) or {}
+    msg = data.get('message', 'Test')
     send_mfw(msg)
     return jsonify({'sent': msg})
 

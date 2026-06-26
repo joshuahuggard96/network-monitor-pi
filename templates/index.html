@@ -32,12 +32,6 @@
             </div>
         </section>
 
-        <!-- Pager Directory -->
-        <section>
-            <h2>Pager Directory</h2>
-            <div id="pager-dir"><div class="status loading">Loading&hellip;</div></div>
-        </section>
-
         <!-- MFW Alarm Log -->
         <section>
             <h2>MFW Alarm Log</h2>
@@ -58,15 +52,9 @@
         }
 
         function updateMfw(data) {
-            const status = data.mfra_running
+            document.getElementById('mfw-status').innerHTML = data.mfra_running
                 ? '<div class="status online">MFRA Running</div>'
                 : '<div class="status offline">MFRA Stopped</div>';
-            document.getElementById('mfw-status').innerHTML = status;
-
-            const rows = data.pagers.filter(p => p.user !== '*').map(p =>
-                `<div class="ip-item ip-checking"><strong>${p.user}</strong><span>${p.msg}</span><span class="status-indicator">${p.addr}</span></div>`
-            ).join('');
-            document.getElementById('pager-dir').innerHTML = rows || '<p>No pagers found.</p>';
         }
 
         function sendPage() {

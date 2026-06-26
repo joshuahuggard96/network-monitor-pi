@@ -27,7 +27,7 @@ def send_mfw(msg):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((HOST, PORT))
-            s.sendall(f"{msg}<cr>".encode())
+            s.sendall(f"{msg}\r".encode())
             print(f"MFW: {msg}")
     except Exception as e:
         print(f"socket error: {e}")

@@ -105,6 +105,12 @@
                 });
         }
 
+        function scrollLogToBottom() {
+            const f = document.getElementById('mfw-log');
+            try { f.contentWindow.scrollTo(0, f.contentDocument.body.scrollHeight); } catch(e) {}
+        }
+        document.getElementById('mfw-log').onload = scrollLogToBottom;
+
         setInterval(() => fetch('/api/status').then(r => r.json()).then(updateNetwork), 500);
         setInterval(() => fetch('/api/mfw').then(r => r.json()).then(updateMfw), 5000);
         setInterval(() => document.getElementById('mfw-log').src = '/api/mfw-log?' + Date.now(), 30000);
